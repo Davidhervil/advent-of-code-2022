@@ -1,0 +1,6 @@
+{
+    "name": "adventcontainer",
+    "build": {
+        "dockerfile": "ghc.Dockerfile"
+    }
+}
