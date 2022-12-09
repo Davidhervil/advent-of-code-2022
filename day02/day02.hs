@@ -69,7 +69,7 @@ strategy them expected = let pepe = zipWith setup them expected in Trc.trace ("T
                                 setup a YouWon = pierde !! fromEnum a
 
 calculatePoints :: [Jankenpon] -> [Jankenpon] -> [Int]
-calculatePoints them yours = zipWith play them yours
+calculatePoints theirs yours = zipWith play theirs yours
                                 where
                                     play they you = case undostres you they of
                                         Draw -> 3 + points you
@@ -81,16 +81,16 @@ part1 :: IO ()
 part1 = do
         input <- Tio.getContents
         let letrillas = T.words input
-            (them, yours) = strategize letrillas
-        print ( sum (calculatePoints them yours))
+            (theirs, yours) = strategize letrillas
+        print ( sum (calculatePoints theirs yours))
 
 part2 :: IO ()
 part2 = do
         input <- Tio.getContents
         let letrillas = T.words input
-            (them, results) = parseText letrillas
-            yours = strategy them results
-        print ( sum (calculatePoints them yours))
+            (theirs, results) = parseText letrillas
+            yours = strategy theirs results
+        print ( sum (calculatePoints theirs yours))
 
 
 
