@@ -18,7 +18,9 @@ pierde = [Papel, Tijeras, Piedra]
 
 
 -- I know this fucking sucks but I don't know how to haskell it better :(
-undostres :: Jankenpon -> Jankenpon -> MatchResult
+type Jugador = Jankenpon
+type Contrincante = Jankenpon
+undostres :: Jugador -> Contrincante -> MatchResult
 undostres Piedra Tijeras = Trc.trace (show YouWon) YouWon
 undostres Piedra Papel = Trc.trace (show TheyWon) TheyWon
 undostres Piedra Piedra = Trc.trace (show Draw) Draw
