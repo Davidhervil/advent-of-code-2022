@@ -28,10 +28,6 @@ part1 = do
             total =  sum $ map ( sum . (<$>) priority . uncurry findRepeated . Bf.first S.fromList . parseCompartments ) rapsacks
         print total
 
-
-intersecta3 :: S.Set Char -> S.Set Char -> S.Set Char -> S.Set Char
-intersecta3 s1 s2 s3 = S.intersection (S.intersection s1 s2) s3
-
 comprimirConjunto :: [S.Set Char] -> S.Set Char
 comprimirConjunto [] = S.empty
 comprimirConjunto (s:ss) = foldl S.intersection s ss
