@@ -19,7 +19,7 @@ isContained :: Range -> Range -> Bool
 isContained l r = fst l <= fst r && snd l >= snd r || fst r <= fst l && snd r >= snd l
 
 overlaps :: Range -> Range -> Bool
-overlaps l r = snd l >= fst r || snd r >= fst l -- pending finish
+overlaps l r = snd l >= fst r && fst r >= fst l || snd r >= fst l && fst l >= fst r
 
 part1 :: [(Range,Range)] -> Integer
 part1 = fromIntegral . length . filter (uncurry isContained) 
@@ -33,3 +33,4 @@ main = do
             result = part1 $ map parsePartners pairs
             result2 = part2 $ map parsePartners pairs
         print result
+        print result2
