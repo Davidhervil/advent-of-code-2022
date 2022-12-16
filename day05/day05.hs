@@ -7,8 +7,11 @@ import qualified Data.Text.Read as Tread
 import qualified Data.Text.IO as Tio
 import Debug.Trace ( trace )
 import Text.Read (Lexeme(String))
+import qualified Data.Bifunctor as Bf
+import Data.List
 
 data Order = Order {from :: Int, amount :: Int, destiny :: Int} deriving (Show)
+data StippedLine = Both | Start | End | Neither
 
 donothing = Order 1 0 1
 
@@ -45,22 +48,21 @@ operateCrates state os = foldl moveCrates state os
 part1 :: [[Char]] -> [Order] -> [Char]
 part1 state os = map head $ operateCrates state os
 
-takeNConsecutive' :: Int -> String -> [String] -> [String]
-takeNConsecutive' n c t | n == 0 = t
-                        | otherwise = rolit t n c True
-                          where
-                            rolit :: [String] -> Int -> String -> Bool -> [String]
-                            rolit [] _ _ _ = []
-                            rolit s 0 _ _ =  {-trace ("WTF " ++ show s)-} s
-                            rolit (sc:ss) n cm b | b && sc == cm = sc : rolit ss (n-1) cm False
-                                                 | sc /= cm && not b = sc : rolit ss n cm True
-                                                 | sc == cm && not b = rolit ss n cm False
-                                                 | otherwise = rolit ss n cm b
+takeNConsecutive' :: String -> Int -> (Int,[String]) -> [String]
+takeNConsecutive' c l (n,t) | n == 0 = t
+                            | otherwise = rolit t n c False
+                            where
+                              rolit :: [String] -> Int -> String -> Bool -> [String]
+                              rolit [] _ _ _ = []
+                              rolit s 0 _ _ =  {-trace ("WTF " ++ show s)-} s
+                              rolit (sc:ss) n cm b | b && sc == cm = rolit (drop l ss) (n-1) cm False
+                                                   | sc == cm && not b = sc : rolit ss n cm True
+                                                   | otherwise = sc : rolit ss n cm b
 
 
 takeAtMost :: Int -> Char -> T.Text -> T.Text
 takeAtMost n c t | n == 0 = t
-                 | otherwise = T.pack $ rolit (T.unpack t) n c 
+                 | otherwise = T.pack $ rolit (T.unpack t) n c
                  where
                   rolit :: String -> Int -> Char -> String
                   rolit [] _ _ = []
@@ -69,18 +71,43 @@ takeAtMost n c t | n == 0 = t
                                      | otherwise = sc : rolit ss n cm
 
 
+hasALetter:: String -> Bool
+hasALetter ss = foldr (\ sc -> (||) ( isAlpha sc)) False ss
 
-
+lastN :: Int -> [a] -> [a]
+lastN n xs = foldl' (const . tail) xs (drop n xs)
 -- parseBoxes:: [[Text]] -> Integer -> [[Char]]
 --parseBoxes t n =   replicate n []
 
+dropWhileEndTimes :: Int -> (a -> Bool) -> [a] -> [a]
+dropWhileEndTimes n p = fst . foldr (\x (xs,i) -> if p x && null xs && i<n then ([],i+1) else (x : xs,i)) ([],0)
+
+lineStrip' :: Int -> [String] -> (StippedLine, [String])
+lineStrip' _ [] = (Neither,[])
+lineStrip' n sss@(s:ss) = if s == "" then 
+                      let primero = s : drop n ss
+                          l = last ss
+                        in if l == "" then (Both, dropWhileEndTimes n (=="") primero) else (Start, primero)  
+                     else let l = last sss in if l == "" then (End, dropWhileEndTimes n (=="") sss ) else (Neither, sss) 
+
+decideHowmanyBeenCleaned :: StippedLine -> Int 
+decideHowmanyBeenCleaned Both = 2
+decideHowmanyBeenCleaned Start = 1
+decideHowmanyBeenCleaned End = 1
+decideHowmanyBeenCleaned Neither = 0
+
 main = do
-  input <- Tio.readFile "day05\\input.txt"
+  input <- Tio.readFile "day05/input.txt"
   --- this leaves with a tuple where the boxes are on the left and the numbers and the rest is on the right
-  let (boxes, stacks : rest) = break (all (T.foldl (\bacc c -> bacc && isNumber c) True) . Prelude.filter (not . T.null) . T.splitOn " ") $ T.lines input
-      Right (totalStacks, _) = Tread.decimal $ last . filter (not.T.null) $ T.splitOn " " stacks 
+  let (boxes, stacks : rest) = break (all (T.foldl (\bacc c -> bacc && isNumber c) True) 
+                                          . Prelude.filter (not . T.null) . T.splitOn " ") $ T.lines input
+      Right (totalStacks, _) = Tread.decimal $ last . filter (not.T.null) $ T.splitOn " " stacks
       -- 3+1 comes from you have to delete spaces+1 blankspaces per each empty column because they are 3 spaces each
-      pene = map (  takeNConsecutive' (totalStacks*(3+1)) "" .  (length . filter (""==) &&& id) . map T.unpack . T.splitOn " " . takeAtMost (totalStacks-1) ' ') boxes
+      intermediate = map (  (\(emptyCols,ss) -> Bf.first ((emptyCols-) . decideHowmanyBeenCleaned ) (lineStrip' 3 ss)) 
+                            . Bf.bimap ( totalStacks -) ( map T.unpack . (T.splitOn " " . T.pack)) 
+                            . ( (length . filter isAlpha) &&& id) . T.unpack ) boxes
+      datae = map (  takeNConsecutive' "" 3 ) intermediate
   print boxes
   print $ totalStacks - 1
-  print pene
+  print intermediate
+  print datae
