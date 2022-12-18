@@ -1,14 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Control.Arrow ( Arrow((&&&)) )
-import Data.Char (isNumber, isAlpha)
+import Control.Arrow ( Arrow((&&&)), Arrow((***)) )
+import Data.Char (isNumber, isAlpha, isUpper)
 import qualified Data.Text as T
 import qualified Data.Text.Read as Tread
 import qualified Data.Text.IO as Tio
 import Debug.Trace ( trace )
 import Text.Read (Lexeme(String))
 import qualified Data.Bifunctor as Bf
-import Data.List
+import Text.ParserCombinators.Parsec
+import Data.List (transpose)
 
 data Order = Order {from :: Int, amount :: Int, destiny :: Int} deriving (Show)
 data StippedLine = Both | Start | End | Neither
@@ -41,14 +42,25 @@ removeSeveral n m (s : ss) = let (taken, state) = removeSeveral n (m -1) ss in (
 moveCrates :: [[Char]] -> Order -> [[Char]]
 moveCrates state (Order frm amnt dst) = let (taken, result) = removeSeveral amnt frm state in putSeveral (reverse taken) dst result
 
+moveCrates9001 :: [[Char]] -> Order -> [[Char]]
+moveCrates9001 state (Order frm amnt dst) = let (taken, result) = removeSeveral amnt frm state in putSeveral taken dst result
+
 operateCrates :: [[Char]] -> [Order] -> [[Char]]
 operateCrates state [] = state
 operateCrates state os = foldl moveCrates state os
 
+operateCrates9001 :: [[Char]] -> [Order] -> [[Char]]
+operateCrates9001 state [] = state
+operateCrates9001 state os = foldl moveCrates9001 state os
+
+
 part1 :: [[Char]] -> [Order] -> [Char]
 part1 state os = map head $ operateCrates state os
 
---- Funciones que indujeron al suicidio (Ignorar)
+part2 :: [[Char]] -> [Order] -> [Char]
+part2 state os = map head $ operateCrates9001 state os
+
+{- Funciones que indujeron al suicidio (Ignorar)
 
 takeNConsecutive' :: String -> Int -> (Int,[String]) -> [String]
 takeNConsecutive' c l (n,t) | n == 0 = t
@@ -98,7 +110,7 @@ decideHowmanyBeenCleaned Start = 1
 decideHowmanyBeenCleaned End = 1
 decideHowmanyBeenCleaned Neither = 0
 
-main = do
+oldmain = do
   input <- Tio.readFile "day05/input.txt"
   --- this leaves with a tuple where the boxes are on the left and the numbers and the rest is on the right
   let (boxes, stacks : rest) = break (all (T.foldl (\bacc c -> bacc && isNumber c) True) 
@@ -114,4 +126,43 @@ main = do
   print intermediate
   print datae
 
---- Fin Funciones que indujeron al suicidio
+--- Fin Funciones que indujeron al suicidio -}
+
+toOrder:: String -> Order
+toOrder s = Order { amount = read $ ws !! 1
+                  , from = read $ ws !! 3
+                  , destiny = read $ ws !! 5
+                }
+          -- ["move","4","from","5","to","6"]
+          where ws = words s
+
+cosilla :: Parser String
+cosilla =  between (char '[') (char ']')
+                     (satisfy isAlpha >>= \c -> pure [c])
+         <|> (count 3 (char ' ') >> pure [])
+
+parseRow :: Parser [String]
+parseRow = cosilla `sepBy1` char ' '
+
+parseStacks :: Parser [String]
+parseStacks = do
+    rows <- parseRow `sepEndBy1` newline
+    pure $ map concat $ transpose rows
+
+
+parseBoxes :: [String] -> [[Char]]
+parseBoxes s = case parse parseStacks "" (unlines $ init s) of
+      Right stacks -> stacks -- DIM.fromList $ zip [1..] stacks
+      Left  _error -> []
+
+
+fromInputToState :: String -> ([[Char]], [Order])
+fromInputToState =  ( parseBoxes *** (map toOrder . tail)) . break null . lines
+
+main = do
+  input <- getContents
+  let (state, orders) = fromInputToState input
+      result = part1 state orders
+      result2 = part2 state orders
+  print result
+  print result2
