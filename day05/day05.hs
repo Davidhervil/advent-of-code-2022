@@ -48,6 +48,8 @@ operateCrates state os = foldl moveCrates state os
 part1 :: [[Char]] -> [Order] -> [Char]
 part1 state os = map head $ operateCrates state os
 
+--- Funciones que indujeron al suicidio (Ignorar)
+
 takeNConsecutive' :: String -> Int -> (Int,[String]) -> [String]
 takeNConsecutive' c l (n,t) | n == 0 = t
                             | otherwise = rolit t n c False
@@ -111,3 +113,5 @@ main = do
   print $ totalStacks - 1
   print intermediate
   print datae
+
+--- Fin Funciones que indujeron al suicidio
